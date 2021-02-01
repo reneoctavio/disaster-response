@@ -3,47 +3,64 @@ import typer
 from spacy.tokens import DocBin
 import spacy
 
+from sqlalchemy import create_engine
+import pandas as pd
 
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
 CORPUS_DIR = Path(__file__).parent.parent / "corpus"
 
 
-def read_categories(path: Path):
-    return path.open().read().strip().split("\n")
+def load_data():
+    path = (ASSETS_DIR / "fig8.db").resolve()
+    engine = create_engine(f"sqlite:///{path}")
+    df = pd.read_sql_table("dataset", engine)
+    df = df.set_index("id")
+
+    # Drop unused
+    df = df.drop(["original", "genre"], axis=1)
+
+    # Relabel related 2 to 0 (all of them have 0 to every other category)
+    df.loc[df["related"] == 2, "related"] = 0
+
+    # Drop if column is all ones or all zeros
+    all_ones = df.loc[:, "related":].all()
+    all_zeros = ~df.loc[:, "related":].any()
+    cols_to_drop = df.loc[:, "related":].columns[all_ones | all_zeros].tolist()
+    df = df.drop(cols_to_drop, axis=1)
+
+    # Shuffle
+    df = df.sample(frac=1, random_state=42)
+
+    return df["message"].tolist(), df.loc[:, "related":].todict(orient="records")
 
 
-def read_tsv(file_):
-    for line in file_:
-        text, labels, annotator = line.split("\t")
-        yield {
-            "text": text,
-            "labels": [int(label) for label in labels.split(",")],
-            "annotator": annotator
-        }
-
-
-def convert_record(nlp, record, categories):
+def convert_record(nlp, text, label):
     """Convert a record from the tsv into a spaCy Doc object."""
-    doc = nlp.make_doc(record["text"])
-    # All categories other than the true ones get value 0
-    doc.cats = {category: 0 for category in categories}
-    # True labels get value 1
-    for label in record["labels"]:
-        doc.cats[categories[label]] = 1
+    doc = nlp.make_doc(text)
+    doc.cats = label
     return doc
 
 
-def main(assets_dir: Path=ASSETS_DIR, corpus_dir: Path=CORPUS_DIR, lang: str="en"):
-    """Convert the GoEmotion corpus's tsv files to spaCy's binary format."""
-    categories = read_categories(assets_dir / "categories.txt")
+def main(corpus_dir: Path = CORPUS_DIR, lang: str = "en", split: int = 0.75):
+    """Convert the Figure8 dataset to spaCy's binary format."""
     nlp = spacy.blank(lang)
-    for tsv_file in assets_dir.iterdir():
-        if not tsv_file.parts[-1].endswith(".tsv"):
-            continue
-        records = read_tsv(tsv_file.open(encoding="utf8"))
-        docs = [convert_record(nlp, record, categories) for record in records]
-        out_file = corpus_dir / tsv_file.with_suffix(".spacy").parts[-1]
-        out_data = DocBin(docs=docs).to_bytes()
+    texts, labels = load_data()
+    docs = [convert_record(nlp, text, label) for text, label in zip(texts, labels)]
+
+    # Split dataset
+    train_split = int(split * len(docs))
+    dev_split = train_split + int((1 - split) * len(docs) / 2)
+    sets = {
+        "train": (0, train_split),
+        "dev": (train_split, dev_split),
+        "test": (dev_split, len(docs)),
+    }
+
+    # Save divided sets in spaCy format
+    for key, values in sets.items():
+        i, j = values
+        out_file = corpus_dir / f"{key}.spacy"
+        out_data = DocBin(docs=docs[i:j]).to_bytes()
         with out_file.open("wb") as file_:
             file_.write(out_data)
 

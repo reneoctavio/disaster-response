@@ -15,21 +15,21 @@ directories: ["assets", "training", "configs", "metrics", "packages", "scripts",
 
 # Assets that should be downloaded or available in the directory.
 assets:
-  - dest: "assets/categories.txt"
-    url: "https://raw.githubusercontent.com/google-research/google-research/master/goemotions/data/emotions.txt"
-    description: "The categories to train"
-  - dest: "assets/train.tsv"
-    url: "https://raw.githubusercontent.com/google-research/google-research/master/goemotions/data/train.tsv"
-    description: "The training data"
-  - dest: "assets/dev.tsv"
-    url: "https://raw.githubusercontent.com/google-research/google-research/master/goemotions/data/dev.tsv"
-    description: "The development data"
-  - dest: "assets/test.tsv"
-    url: "https://raw.githubusercontent.com/google-research/google-research/master/goemotions/data/test.tsv"
-    description: "The test data"
+  # - dest: "assets/categories.txt"
+  #   url: "https://raw.githubusercontent.com/google-research/google-research/master/goemotions/data/emotions.txt"
+  #   description: "The categories to train"
+  # - dest: "assets/train.tsv"
+  #   url: "https://raw.githubusercontent.com/google-research/google-research/master/goemotions/data/train.tsv"
+  #   description: "The training data"
+  # - dest: "assets/dev.tsv"
+  #   url: "https://raw.githubusercontent.com/google-research/google-research/master/goemotions/data/dev.tsv"
+  #   description: "The development data"
+  # - dest: "assets/test.tsv"
+  #   url: "https://raw.githubusercontent.com/google-research/google-research/master/goemotions/data/test.tsv"
+  #   description: "The test data"
   # Uncomment this asset if you want to download the vectors.
-  #- dest: "assets/vectors.zip"
-  #  url: "https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip"
+    - dest: "assets/vectors.zip"
+      url: "https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip"
 
 # Workflows are sequences of commands (see below) executed in order. You can
 # run them via "spacy project run [workflow]". If a commands's inputs/outputs
@@ -60,10 +60,7 @@ commands:
     script:
       - "python scripts/convert_corpus.py"
     deps:
-      - "assets/train.tsv"
-      - "assets/dev.tsv"
-      - "assets/test.tsv"
-      - "assets/categories.txt"
+      - "assets/fig8.db"
     outputs_no_cache:
       - "corpus/train.spacy"
       - "corpus/dev.spacy"
