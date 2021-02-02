@@ -1,6 +1,10 @@
+assets/vectors.zip
+assets/en_*
 corpus
 training
 packages
 metrics
 
 .vscode
+
+project.lock
