@@ -11,8 +11,9 @@ ASSETS_DIR = Path(__file__).parent.parent / "assets"
 CORPUS_DIR = Path(__file__).parent.parent / "corpus"
 
 
-def load_data():
-    path = (ASSETS_DIR / "fig8.db").resolve()
+def load_data(assets_dir: Path = ASSETS_DIR, split: float = 0.75):
+    """Load data from SQLite and split data into train, dev, and test"""
+    path = (assets_dir / "fig8.db").resolve()
     engine = create_engine(f"sqlite:///{path}")
     df = pd.read_sql_table("dataset", engine)
     df = df.set_index("id")
@@ -34,8 +35,22 @@ def load_data():
     X = df["message"].tolist()
     y = df.loc[:, "related":].to_dict(orient="records")
 
-    for text, label in zip(X, y):
-        yield text, label
+    # Split dataset
+    train_split = int(split * df.shape[0])
+    dev_split = train_split + int((df.shape[0] - train_split) / 2)
+    sets_split = {
+        "train": (0, train_split),
+        "dev": (train_split, dev_split),
+        "test": (dev_split, df.shape[0]),
+    }
+    print(f"Split indices: {sets_split}")
+
+    sets = {}
+    for key, values in sets_split.items():
+        i, j = values
+        sets[key] = zip(X[i:j], y[i:j])
+
+    return sets
 
 
 def convert_record(nlp, text, label):
@@ -45,26 +60,16 @@ def convert_record(nlp, text, label):
     return doc
 
 
-def main(corpus_dir: Path = CORPUS_DIR, lang: str = "en", split: float = 0.75):
+def main(corpus_dir: Path = CORPUS_DIR, lang: str = "en"):
     """Convert the Figure8 dataset to spaCy's binary format."""
     nlp = spacy.blank(lang)
-    docs = [convert_record(nlp, text, label) for text, label in load_data()]
-
-    # Split dataset
-    train_split = int(split * len(docs))
-    dev_split = train_split + int((len(docs) - train_split) / 2)
-    sets = {
-        "train": (0, train_split),
-        "dev": (train_split, dev_split),
-        "test": (dev_split, len(docs)),
-    }
-    print(sets)
+    sets = load_data()
 
     # Save divided sets in spaCy format
-    for key, values in sets.items():
-        i, j = values
+    for key, data in sets.items():
+        docs = [convert_record(nlp, text, label) for text, label in data]
         out_file = corpus_dir / f"{key}.spacy"
-        out_data = DocBin(docs=docs[i:j]).to_bytes()
+        out_data = DocBin(docs=docs).to_bytes()
         with out_file.open("wb") as file_:
             file_.write(out_data)
 
