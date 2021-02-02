@@ -1,41 +1,30 @@
-title: "Categorization of emotions in Reddit posts (Text Classification)"
-description: "This project uses spaCy to train a text classifier on the [GoEmotions dataset](https://github.com/google-research/google-research/tree/master/goemotions) with options for a pipeline with and without transformer weights. To use the BERT-based config, change the `config` variable in the `project.yml`."
+title: "Categorization of labels in Figure Eight Disaster Response messages (Text Classification)"
+description: "This project uses spaCy to train a text classifier on the [dataset](https://appen.com/datasets/combined-disaster-response-data/)"
 # Variables can be referenced across the project.yml using ${vars.var_name}
 vars:
-  name: "en_textcat_reddit"
+  name: "en_textcat_fig8"
   version: "0.0.1"
   # Choose your GPU here
-  gpu_id: -1
+  gpu_id: 0
   # Change this to "bert" to use the transformer-based model
-  config: "cnn"
+  config: "bert"
 
 # These are the directories that the project needs. The project CLI will make
 # sure that they always exist.
 directories: ["assets", "training", "configs", "metrics", "packages", "scripts", "corpus"]
 
 # Assets that should be downloaded or available in the directory.
-assets:
-  # - dest: "assets/categories.txt"
-  #   url: "https://raw.githubusercontent.com/google-research/google-research/master/goemotions/data/emotions.txt"
-  #   description: "The categories to train"
-  # - dest: "assets/train.tsv"
-  #   url: "https://raw.githubusercontent.com/google-research/google-research/master/goemotions/data/train.tsv"
-  #   description: "The training data"
-  # - dest: "assets/dev.tsv"
-  #   url: "https://raw.githubusercontent.com/google-research/google-research/master/goemotions/data/dev.tsv"
-  #   description: "The development data"
-  # - dest: "assets/test.tsv"
-  #   url: "https://raw.githubusercontent.com/google-research/google-research/master/goemotions/data/test.tsv"
-  #   description: "The test data"
-  # Uncomment this asset if you want to download the vectors.
-    - dest: "assets/vectors.zip"
-      url: "https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip"
+# Uncomment this asset if you want to download the vectors.
+# assets:
+    # - dest: "assets/vectors.zip"
+    #   url: "https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip"
 
 # Workflows are sequences of commands (see below) executed in order. You can
 # run them via "spacy project run [workflow]". If a commands's inputs/outputs
 # haven't changed, it won't be re-run.
 workflows:
   all:
+    - init-labels
     - preprocess
     - train
     - evaluate
@@ -49,11 +38,16 @@ commands:
   - name: init-vectors
     help: Download vectors and convert to model
     script:
-      - "python -m spacy init model --vectors-loc assets/vectors.zip en assets/en_fasttext_vectors"
+      - "python -m spacy init vectors en assets/vectors.zip assets/en_fasttext_vectors"
     deps:
       - "assets/vectors.zip"
     outputs_no_cache:
       - "assets/en_vectors_web_lg"
+
+  - name: init-labels
+    help: Create a file with labels
+    script:
+      - "python -m spacy init labels ./configs/${vars.config}.cfg ./corpus --gpu-id ${vars.gpu_id}"
 
   - name: preprocess
     help: "Convert the corpus to spaCy's format"
