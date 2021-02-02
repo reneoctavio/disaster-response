@@ -2,6 +2,7 @@ from pathlib import Path
 import typer
 from spacy.tokens import DocBin
 import spacy
+import math
 
 from sqlalchemy import create_engine
 import pandas as pd
@@ -30,8 +31,11 @@ def load_data():
 
     # Shuffle
     df = df.sample(frac=1, random_state=42)
+    X = df["message"].tolist()
+    y = df.loc[:, "related":].to_dict(orient="records")
 
-    return df["message"].tolist(), df.loc[:, "related":].todict(orient="records")
+    for text, label in zip(X, y):
+        yield text, label
 
 
 def convert_record(nlp, text, label):
@@ -41,20 +45,20 @@ def convert_record(nlp, text, label):
     return doc
 
 
-def main(corpus_dir: Path = CORPUS_DIR, lang: str = "en", split: int = 0.75):
+def main(corpus_dir: Path = CORPUS_DIR, lang: str = "en", split: float = 0.75):
     """Convert the Figure8 dataset to spaCy's binary format."""
     nlp = spacy.blank(lang)
-    texts, labels = load_data()
-    docs = [convert_record(nlp, text, label) for text, label in zip(texts, labels)]
+    docs = [convert_record(nlp, text, label) for text, label in load_data()]
 
     # Split dataset
     train_split = int(split * len(docs))
-    dev_split = train_split + int((1 - split) * len(docs) / 2)
+    dev_split = train_split + int((len(docs) - train_split) / 2)
     sets = {
         "train": (0, train_split),
         "dev": (train_split, dev_split),
         "test": (dev_split, len(docs)),
     }
+    print(sets)
 
     # Save divided sets in spaCy format
     for key, values in sets.items():
