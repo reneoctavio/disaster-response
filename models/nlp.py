@@ -6,6 +6,7 @@ from typing import List
 
 
 def load_spacy_model():
+    """Load a spaCy model, if does not exist download"""
     spacy.prefer_gpu()
     try:
         nlp = spacy.load("en_core_web_sm")

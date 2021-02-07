@@ -17,7 +17,7 @@ engine = create_engine("sqlite:///../data/DisasterResponse.db")
 df = pd.read_sql_table("dataset", engine)
 
 # Read Model
-model = spacy.load("../spacy/training/roberta/model-last")
+model = spacy.load("../models/spacy/training/roberta/model-last")
 
 # index webpage displays cool visuals and receives user input text for model
 @app.route("/")
@@ -58,7 +58,7 @@ def go():
 
     # predict
     doc = model(query)
-    classification_results = (pd.Series(classification_results) >= 0.5).to_dict()
+    classification_results = (pd.Series(doc.cats) >= 0.5).to_dict()
 
     # This will render the go.html Please see that file.
     return render_template(
