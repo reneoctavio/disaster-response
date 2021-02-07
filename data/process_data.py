@@ -45,6 +45,7 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def save_data(df: pd.DataFrame, database_file: str):
+    """Save cleaned dataset in a SQLite file"""
     engine = create_engine(f"sqlite:///{database_file}")
     df.to_sql("dataset", engine, index=False, if_exists="replace")
 

@@ -1,2 +1,4 @@
 pandas
+spacy>=3.0.1
 sqlalchemy
+sqlite3
