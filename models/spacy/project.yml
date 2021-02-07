@@ -1,0 +1,83 @@
+title: "Categorization of labels in Figure Eight Disaster Response messages (Text Classification)"
+description: "This project uses spaCy to train a text classifier on the [dataset](https://appen.com/datasets/combined-disaster-response-data/)"
+# Variables can be referenced across the project.yml using ${vars.var_name}
+vars:
+  name: "fig8_spacy"
+  version: "0.0.1"
+  gpu_id: 0
+
+# These are the directories that the project needs. The project CLI will make
+# sure that they always exist.
+directories:
+  ["assets", "training", "configs", "metrics", "packages", "scripts", "corpus"]
+
+# Workflows are sequences of commands (see below) executed in order. You can
+# run them via "spacy project run [workflow]". If a commands's inputs/outputs
+# haven't changed, it won't be re-run.
+workflows:
+  all:
+    - init-labels
+    - preprocess
+    - train
+    - evaluate
+    - package
+
+# Project commands, specified in a style similar to CI config files (e.g. Azure
+# pipelines). The name is the command name that lets you trigger the command
+# via "spacy project run [command] [path]". The help message is optional and
+# shown when executing "spacy project run [optional command] [path] --help".
+commands:
+  - name: init-labels
+    help: Create a file with labels
+    script:
+      - "python -m spacy init labels ./configs/roberta.cfg ./corpus --gpu-id ${vars.gpu_id}"
+
+  - name: preprocess
+    help: "Convert the corpus to spaCy's format"
+    script:
+      - "python scripts/convert_corpus.py"
+    deps:
+      - "assets/fig8.db"
+    outputs_no_cache:
+      - "corpus/train.spacy"
+      - "corpus/dev.spacy"
+      - "corpus/test.spacy"
+
+  - name: train
+    help: "Train a spaCy pipeline using the specified corpus and config"
+    script:
+      - "mkdir -p training/roberta"
+      - "python -m spacy train ./configs/roberta.cfg -o training/roberta --gpu-id ${vars.gpu_id}"
+    deps:
+      - "corpus/train.spacy"
+      - "corpus/dev.spacy"
+      - "configs/roberta.cfg"
+    outputs:
+      - "training/roberta/model-best"
+
+  - name: evaluate
+    help: "Evaluate on the test data and save the metrics"
+    script:
+      - "python -m spacy evaluate ./training/roberta/model-best ./corpus/test.spacy --output ./metrics/roberta.json --gpu-id ${vars.gpu_id}  --code scripts/functions.py"
+    deps:
+      - "training/roberta/model-best"
+      - "corpus/test.spacy"
+    outputs:
+      - "metrics/roberta.json"
+
+  - name: package
+    help: "Package the trained model so it can be installed"
+    script:
+      - "python -m spacy package ./training/roberta/model-best packages/ --name roberta --force --version ${vars.version}"
+    deps:
+      - "training/roberta/model-best"
+    outputs_no_cache:
+      - "packages/roberta-${vars.version}/dist/roberta-${vars.version}.tar.gz"
+
+  - name: visualize
+    help: Visualize the model's output interactively using Streamlit
+    script:
+      - 'streamlit run scripts/visualize_model.py training/roberta/model-best "I’m sorry to hear that friend :("'
+    deps:
+      - "scripts/visualize_model.py"
+      - "training/roberta/model-best"

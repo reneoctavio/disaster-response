@@ -154,3 +154,6 @@ training
 packages
 metrics
 project.lock
+
+# SQLite database
+*.db
