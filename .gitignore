@@ -155,5 +155,7 @@ packages
 metrics
 project.lock
 
+*.pkl
+
 # SQLite database
 *.db
