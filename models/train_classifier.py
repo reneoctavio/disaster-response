@@ -1,14 +1,16 @@
 import joblib
+import spacy
 import sys
 
 import pandas as pd
 
-from nlp_transformer import NLPTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.pipeline import Pipeline
+
+from nlp import load_spacy_model, lemmatize
 from sqlalchemy import create_engine
 from typing import Tuple
 
@@ -17,17 +19,22 @@ def load_data(database_file: str) -> Tuple[list, pd.DataFrame, list]:
     """Load data from a SQLite database"""
     engine = create_engine(f"sqlite:///{database_file}")
     df = pd.read_sql_table("dataset", engine).set_index("id")
+
+    # Randomize
     df = df.sample(frac=1, random_state=42)
+
+    # Divide into X, y
     X = df["message"].tolist()
     y = df.drop(["message", "original", "genre"], axis=1)
+
     return X, y, y.columns.tolist()
 
 
 def build_model() -> GridSearchCV:
     """Build a model
 
-    The data will pass through a NLP transfomer,
-    a tf-idf Vectorizer and a Random Forest Classifier
+    The data will pass through a tf-idf Vectorizer
+    and a Random Forest Classifier
 
     Because of class imbalance, we set class_weight to
     balanced to give more weight to underrepresented
@@ -37,9 +44,9 @@ def build_model() -> GridSearchCV:
     and a min samples split for Random Forest.
 
     """
+
     pipeline = Pipeline(
         [
-            ("nlp", NLPTransformer()),
             ("tfidf", TfidfVectorizer()),
             ("clf", RandomForestClassifier(class_weight="balanced")),
         ]
@@ -67,7 +74,7 @@ def evaluate_model(
 
 def save_model(model: GridSearchCV, model_file: str):
     """Save model to a file"""
-    joblib.dump(model.best_params_, model_file, compress=1)
+    joblib.dump(model.best_estimator_, model_file, compress=1)
 
 
 def main():
@@ -77,6 +84,12 @@ def main():
 
         print("Loading data...\n    DATABASE: {}".format(database_file))
         X, Y, category_names = load_data(database_file)
+
+        print("Lemmatizing texts...")
+        nlp = load_spacy_model()
+        X = lemmatize(X, nlp)
+
+        # Split training and test sets
         X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2)
 
         print("Building model...")
