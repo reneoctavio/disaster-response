@@ -1,5 +1,4 @@
 import joblib
-import os
 import sys
 
 import pandas as pd
@@ -14,12 +13,12 @@ from sqlalchemy import create_engine
 from typing import Tuple
 
 
-def load_data(database_file: str) -> Tuple[pd.DataFrame, pd.DataFrame, list]:
+def load_data(database_file: str) -> Tuple[list, pd.DataFrame, list]:
     """Load data from a SQLite database"""
     engine = create_engine(f"sqlite:///{database_file}")
-    df = pd.read_sql_table("dataset", engine)
+    df = pd.read_sql_table("dataset", engine).set_index("id")
     df = df.sample(frac=1, random_state=42)
-    X = df[["message"]]
+    X = df["message"].tolist()
     y = df.drop(["message", "original", "genre"], axis=1)
     return X, y, y.columns.tolist()
 
@@ -42,28 +41,28 @@ def build_model() -> GridSearchCV:
         [
             ("nlp", NLPTransformer()),
             ("tfidf", TfidfVectorizer()),
-            ("clf", RandomForestClassifier(class_weight="balanced", n_jobs=-1)),
+            ("clf", RandomForestClassifier(class_weight="balanced")),
         ]
     )
 
     parameters = {
         "tfidf__max_df": [0.5, 1.0],
         "clf__n_estimators": [10, 100],
-        "clf__min_samples_split": [1, 2],
     }
 
     return GridSearchCV(pipeline, parameters)
 
 
 def evaluate_model(
-    model: GridSearchCV,
-    X_test: pd.DataFrame,
-    y_test: pd.DataFrame,
-    category_names: list,
+    model: GridSearchCV, X_test: list, y_test: pd.DataFrame, category_names: list,
 ):
     """Evaluate the model, printing Precision, Recall and F1 scores"""
     y_pred = model.predict(X_test)
-    print(classification_report(y_test, y_pred, target_names=category_names))
+    print(
+        classification_report(
+            y_test, y_pred, target_names=category_names, zero_division=0
+        )
+    )
 
 
 def save_model(model: GridSearchCV, model_file: str):
@@ -73,9 +72,6 @@ def save_model(model: GridSearchCV, model_file: str):
 
 def main():
     if len(sys.argv) == 3:
-        # Download resources
-        os.system("python -m spacy download en_core_web_sm")
-
         # pylint: disable=unbalanced-tuple-unpacking
         database_file, model_file = sys.argv[1:]
 
