@@ -8,16 +8,15 @@ vars:
 
 # These are the directories that the project needs. The project CLI will make
 # sure that they always exist.
-directories:
-  ["training", "configs", "metrics", "scripts", "corpus"]
+directories: ["training", "configs", "metrics", "scripts", "corpus"]
 
 # Workflows are sequences of commands (see below) executed in order. You can
 # run them via "spacy project run [workflow]". If a commands's inputs/outputs
 # haven't changed, it won't be re-run.
 workflows:
   all:
-    - init-labels
     - preprocess
+    - init-labels
     - train
     - evaluate
 
@@ -26,11 +25,6 @@ workflows:
 # via "spacy project run [command] [path]". The help message is optional and
 # shown when executing "spacy project run [optional command] [path] --help".
 commands:
-  - name: init-labels
-    help: Create a file with labels
-    script:
-      - "python -m spacy init labels ./configs/roberta.cfg ./corpus --gpu-id ${vars.gpu_id}"
-
   - name: preprocess
     help: "Convert the corpus to spaCy's format"
     script:
@@ -41,6 +35,11 @@ commands:
       - "corpus/train.spacy"
       - "corpus/dev.spacy"
       - "corpus/test.spacy"
+
+  - name: init-labels
+    help: Create a file with labels
+    script:
+      - "python -m spacy init labels ./configs/roberta.cfg ./corpus --gpu-id ${vars.gpu_id}"
 
   - name: train
     help: "Train a spaCy pipeline using the specified corpus and config"
@@ -57,10 +56,9 @@ commands:
   - name: evaluate
     help: "Evaluate on the test data and save the metrics"
     script:
-      - "python -m spacy evaluate ./training/roberta/model-best ./corpus/test.spacy --output ./metrics/roberta.json --gpu-id ${vars.gpu_id}  --code scripts/functions.py"
+      - "python -m spacy evaluate ./training/roberta/model-best ./corpus/test.spacy --output ./metrics/roberta.json --gpu-id ${vars.gpu_id}"
     deps:
       - "training/roberta/model-best"
       - "corpus/test.spacy"
     outputs:
       - "metrics/roberta.json"
-

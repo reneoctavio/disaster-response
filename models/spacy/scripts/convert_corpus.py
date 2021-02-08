@@ -11,11 +11,12 @@ from sqlalchemy import create_engine
 CORPUS_DIR = Path(__file__).parent.parent / "corpus"
 
 
-def load_data(text_col_name: int = "message", split: float = 0.80):
+def load_data(split: float = 0.80):
     """Load data from SQLite and split data into train, dev, and test"""
     path = "../../data/DisasterResponse.db"
     engine = create_engine(f"sqlite:///{path}")
-    df = pd.read_sql_table("dataset", engine).set_index("id")
+    df = pd.read_sql_table("dataset", engine)
+    df = df.set_index("id")
 
     # Randomize
     df = df.sample(frac=1, random_state=42)
@@ -32,7 +33,7 @@ def load_data(text_col_name: int = "message", split: float = 0.80):
 
     # Divide into X, y
     X = df["message"].tolist()
-    y = df.drop(["message", "original", "genre"], axis=1)
+    y = df.drop(["message", "original", "genre"], axis=1).to_dict(orient="records")
 
     sets = {}
     for key, values in sets_split.items():
@@ -51,17 +52,16 @@ def convert_record(nlp: spacy.Language, text: str, label: dict):
 
 def main(corpus_dir: Path = CORPUS_DIR):
     """Convert the Figure8 dataset to spaCy's binary format."""
-    for text_col_name, lang in [("message", "en"), ("original", "xx")]:
-        nlp = spacy.blank(lang)
-        sets = load_data(text_col_name=text_col_name)
+    nlp = spacy.blank("en")
+    sets = load_data()
 
-        # Save divided sets in spaCy format
-        for key, data in sets.items():
-            docs = [convert_record(nlp, text, label) for text, label in data]
-            out_file = corpus_dir / f"{key}.{text_col_name}.spacy"
-            out_data = DocBin(docs=docs).to_bytes()
-            with out_file.open("wb") as file_:
-                file_.write(out_data)
+    # Save divided sets in spaCy format
+    for key, data in sets.items():
+        docs = [convert_record(nlp, text, label) for text, label in data]
+        out_file = corpus_dir / f"{key}.spacy"
+        out_data = DocBin(docs=docs).to_bytes()
+        with out_file.open("wb") as file_:
+            file_.write(out_data)
 
 
 if __name__ == "__main__":
