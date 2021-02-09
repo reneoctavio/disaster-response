@@ -153,8 +153,10 @@ corpus
 training
 packages
 metrics
+model-best
+model-last
 project.lock
-
+*.zip
 *.pkl
 
 # SQLite database
