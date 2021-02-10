@@ -1,30 +1,10 @@
 import pandas as pd
 import spacy
-import requests
-import zipfile
 
 from flask import Flask
-
 from sqlalchemy import create_engine
 
-DOWNLOAD_LINK = (
-    "https://api.onedrive.com/v1.0/shares/u!"
-    + "aHR0cHM6Ly8xZHJ2Lm1zL3UvcyFBalpDaVlrY2twdF9oWXg4UF8zUEFoeG1udjNtdEE"
-    + "/root/content"
-)
-
-
-def download_model():
-    """Download trained spaCy model"""
-    with requests.get(DOWNLOAD_LINK, stream=True) as r:
-        r.raise_for_status()
-        with open("model-best.zip", "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
-
-    with zipfile.ZipFile("model-best.zip", "r") as f:
-        f.extractall()
-
+from download_model import download_model
 
 # Load Model
 try:
@@ -37,7 +17,12 @@ except OSError:
 engine = create_engine("sqlite:///../data/DisasterResponse.db")
 df = pd.read_sql_table("dataset", engine)
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="../app/build", static_url_path="/")
+
+
+@app.route("/")
+def index():
+    return app.send_static_file("index.html")
 
 
 @app.route("/api/genre_counts")
@@ -66,9 +51,5 @@ def predict(query):
     return {"results": list(zip(results.index, results))}
 
 
-def main():
-    app.run(host="0.0.0.0", port=5000, debug=True)
-
-
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0")
