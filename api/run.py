@@ -1,13 +1,9 @@
-import json
-import plotly
 import pandas as pd
 import spacy
 import requests
 import zipfile
 
 from flask import Flask
-from flask import render_template
-from plotly.graph_objs import Bar
 
 from sqlalchemy import create_engine
 
@@ -44,34 +40,21 @@ df = pd.read_sql_table("dataset", engine)
 app = Flask(__name__)
 
 
-# index webpage displays cool visuals and receives user input text for model
-@app.route("/")
-def index():
-
-    # extract data needed for visuals
-    # TODO: Below is an example - modify to extract data for your own visuals
+@app.route("/api/genre_counts")
+def genre_counts():
     genre_counts = df.groupby("genre").count()["message"]
     genre_names = list(genre_counts.index)
 
-    # create visuals
-    # TODO: Below is an example - modify to create your own visuals
-    graphs = [
-        {
-            "data": [Bar(x=genre_names, y=genre_counts)],
-            "layout": {
-                "title": "Distribution of Message Genres",
-                "yaxis": {"title": "Count"},
-                "xaxis": {"title": "Genre"},
-            },
-        }
-    ]
+    return {"genre_names": genre_names, "genre_counts": genre_counts.to_list()}
 
-    # encode plotly graphs in JSON
-    ids = ["graph-{}".format(i) for i, _ in enumerate(graphs)]
-    graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
 
-    # render web page with plotly graphs
-    return render_template("master.html", ids=ids, graphJSON=graphJSON)
+@app.route("/api/labels_count")
+def labels_count():
+    labels_count = df.loc[:, "related":].sum().sort_values(ascending=False)
+    labels_name = list(labels_count.index)
+    labels_name = [n.replace("_", " ").title() for n in labels_name]
+
+    return {"labels_name": labels_name, "labels_count": labels_count.to_list()}
 
 
 @app.route("/api/predict/<query>")

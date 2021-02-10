@@ -72,8 +72,8 @@ export default function Classifier() {
   }
 
   return (
-    <>
-      <Paper>
+    <Box m={3}>
+      <Paper elevation={3}>
         <Box p={2}>
           <Typography variant="h4">
             Analyze Message for Disaster Response
@@ -100,10 +100,10 @@ export default function Classifier() {
       </Paper>
       {(isPending || error || data) && (
         <>
-          <Box p={2}>
+          <Box m={2}>
             <Divider variant="middle" />
           </Box>
-          <Paper>
+          <Paper elevation={3}>
             <Box p={2}>
               {isPending && <p>Loading...</p>}
               {error && <p>{error.message}</p>}
@@ -112,6 +112,6 @@ export default function Classifier() {
           </Paper>
         </>
       )}
-    </>
+    </Box>
   );
 }

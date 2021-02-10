@@ -1,9 +1,9 @@
 import "./App.css";
 
-import Box from "@material-ui/core/Box";
 import Grid from "@material-ui/core/Grid";
 
 import Classifier from "./Classifier";
+import Overview from "./Overview";
 import UpperBar from "./UpperBar";
 
 function App() {
@@ -14,12 +14,10 @@ function App() {
           <UpperBar />
         </Grid>
         <Grid item xs={12}>
-          <Box m={3}>
-            <Classifier />
-          </Box>
+          <Classifier />
         </Grid>
-        <Grid item xs={12} sm={6}>
-          <Box m={3}></Box>
+        <Grid item xs={12}>
+          <Overview />
         </Grid>
       </Grid>
     </div>
