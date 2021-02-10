@@ -6,7 +6,7 @@ import requests
 import zipfile
 
 from flask import Flask
-from flask import render_template, request
+from flask import render_template
 from plotly.graph_objs import Bar
 
 from sqlalchemy import create_engine
@@ -74,19 +74,13 @@ def index():
     return render_template("master.html", ids=ids, graphJSON=graphJSON)
 
 
-@app.route("/go")
-def go():
-    # save user input in query
-    query = request.args.get("query", "")
-
-    # predict
+@app.route("/api/predict/<query>")
+def predict(query):
+    # Predict
     doc = model(query)
-    classification_results = (pd.Series(doc.cats) >= 0.5).to_dict()
+    results = pd.Series(doc.cats).sort_values(ascending=False)
 
-    # This will render the go.html Please see that file.
-    return render_template(
-        "go.html", query=query, classification_result=classification_results
-    )
+    return {"results": list(zip(results.index, results))}
 
 
 def main():
