@@ -17,7 +17,7 @@ except OSError:
 engine = create_engine("sqlite:///../data/DisasterResponse.db")
 df = pd.read_sql_table("dataset", engine)
 
-app = Flask(__name__, static_folder="../app/build", static_url_path="/")
+app = Flask(__name__, static_folder="react-app/", static_url_path="/")
 
 
 @app.route("/")
