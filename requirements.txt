@@ -1,5 +1,4 @@
 flask
-gunicorn==20.0.4
 pandas==1.2.1
 requests
 spacy>=3.0.1

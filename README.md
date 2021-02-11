@@ -14,7 +14,7 @@
 ### Just use the App
 
 1. Go to api directory `cd api`
-2. Run `gunicorn --bind 0.0.0.0:5000 app:app`
+2. Run `flask run --no-debugger`
 3. It will take a while to download the almost 500MB spaCy model
 4. Go to http://0.0.0.0:5000/
 5. Then you can test messages
