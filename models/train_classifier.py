@@ -1,5 +1,5 @@
+import nltk
 import joblib
-import spacy
 import sys
 
 import pandas as pd
@@ -10,7 +10,7 @@ from sklearn.metrics import classification_report
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.pipeline import Pipeline
 
-from nlp import load_spacy_model, lemmatize
+from nlp import clean_text
 from sqlalchemy import create_engine
 from typing import Tuple
 
@@ -47,7 +47,7 @@ def build_model() -> GridSearchCV:
 
     pipeline = Pipeline(
         [
-            ("tfidf", TfidfVectorizer()),
+            ("tfidf", TfidfVectorizer(tokenizer=clean_text)),
             ("clf", RandomForestClassifier(class_weight="balanced")),
         ]
     )
@@ -79,15 +79,17 @@ def save_model(model: GridSearchCV, model_file: str):
 
 def main():
     if len(sys.argv) == 3:
+        # Install nltk packages
+        nltk.download("averaged_perceptron_tagger")
+        nltk.download("punkt")
+        nltk.download("stopwords")
+        nltk.download("wordnet")
+
         # pylint: disable=unbalanced-tuple-unpacking
         database_file, model_file = sys.argv[1:]
 
         print("Loading data...\n    DATABASE: {}".format(database_file))
         X, Y, category_names = load_data(database_file)
-
-        print("Lemmatizing texts...")
-        nlp = load_spacy_model()
-        X = lemmatize(X, nlp)
 
         # Split training and test sets
         X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2)
