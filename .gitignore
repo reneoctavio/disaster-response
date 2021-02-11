@@ -160,7 +160,7 @@ project.lock
 *.pkl
 
 # SQLite database
-*.db
+# *.db
 
 ### react ###
 .DS_*
